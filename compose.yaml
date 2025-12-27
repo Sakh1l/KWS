@@ -31,7 +31,12 @@ services:
     volumes:
       - postgres_db_data_kws:/var/lib/postgresql/data:rw
     ports:
-      - "127.0.0.1:${DB_PORT}:${DB_PORT}"
+      - "127.0.0.1:${DB_PORT}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DBNAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - kws_main
   
@@ -45,8 +50,8 @@ services:
       - RABBITMQ_DEFAULT_USER=${MQ_USER}
       - RABBITMQ_DEFAULT_PASS=${MQ_PASSWORD}
     ports:
-      - "127.0.0.1:${MQ_SERVER_PORT}:${MQ_SERVER_PORT}"
-      - "127.0.0.1:${MQ_UI_PORT}:${MQ_UI_PORT}"
+      - "127.0.0.1:${MQ_SERVER_PORT}:5672"
+      - "127.0.0.1:${MQ_UI_PORT}:15672"
     volumes:
       - mq_kws:/var/lib/rabbitmq
     healthcheck:
@@ -63,10 +68,15 @@ services:
     volumes:
       - redis_db_data_kws:/data:rw
     ports:
-      - "127.0.0.1:${REDIS_PORT}:${REDIS_PORT}"
+      - "127.0.0.1:${REDIS_PORT}:6379"
     env_file:
       - .env
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     restart: always
     networks:
       - kws_main
@@ -90,6 +100,8 @@ services:
     image: golang:latest
     container_name: kws_gateway
     privileged: true
+    env_file:
+      - .env
     volumes:
       - ./nginx/conf.d:/app/nginx_conf:rw
       - ./src/:/app/data
@@ -100,10 +112,14 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - postgres
-      - redis
-      - rabbitmq
-      - postgres_service
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      postgres_service:
+        condition: service_healthy
     working_dir: /app/data/cmd
     command: sh -c "apt-get update && apt-get install -y uuid-runtime && go run ."
 
@@ -135,6 +151,11 @@ services:
       - postgres_db_service_data:/var/lib/postgresql/data:rw
     ports:
       - "127.0.0.1:${PG_SERVICE_PORT}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PG_SERVICE_USERNAME} -d ${PG_SERVICE_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       kws_services:
         ipv4_address: 172.25.0.2

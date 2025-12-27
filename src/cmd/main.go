@@ -67,9 +67,10 @@ func main() {
 		Port: env.GetMqPort(),
 		Host: env.GetMqHost(),
 	}
+	log.Printf("Connecting to RabbitMQ: amqp://%s:***@%s:%s/", mqCon.User, mqCon.Host, mqCon.Port)
 	con, err := mqCon.ConnectToMq() // TCP connection
 	if err != nil {
-		log.Fatal("Failed to connect to rabbitmq")
+		log.Fatalf("Failed to connect to rabbitmq: %v", err)
 	}
 
 	// Create chan pool struct

@@ -6,6 +6,8 @@ ATTACH_SERVICES = \
 	dnsmasq_kws:lxdbr0:172.30.0.102/24
 
 define attach_services
+	@echo "Waiting for containers to start..."
+	@sleep 5
 	@echo "Attaching services to bridge..."
 	@set -e; \
 	for triple in $(ATTACH_SERVICES); do \
@@ -14,7 +16,19 @@ define attach_services
 		bridge=$${tmp%%:*}; \
 		ipcidr=$${tmp#*:}; \
 		echo " -> $$container to $$bridge with $$ipcidr"; \
-		attach_to_bridge $$container $$bridge $$ipcidr; \
+		max_attempts=10; \
+		attempt=1; \
+		while [ $$attempt -le $$max_attempts ]; do \
+			if docker inspect -f '{{.State.Running}}' "$$container" 2>/dev/null | grep -q true; then \
+				attach_to_bridge $$container $$bridge $$ipcidr && break; \
+			fi; \
+			echo "   Waiting for $$container to start (attempt $$attempt/$$max_attempts)..."; \
+			sleep 2; \
+			attempt=$$((attempt + 1)); \
+		done; \
+		if [ $$attempt -gt $$max_attempts ]; then \
+			echo "   Warning: $$container did not start in time, skipping..."; \
+		fi; \
 	done
 endef
 
@@ -31,6 +45,8 @@ stop:
 
 start:
 	docker compose start
+	@echo "Waiting for containers to be ready..."
+	@sleep 3
 	$(call attach_services)
 	docker compose logs -f
 

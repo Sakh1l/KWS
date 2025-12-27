@@ -10,9 +10,11 @@ import (
 
 // Load .env file variables
 func LoadEnv() {
+	// Try to load .env file, but don't fail if it doesn't exist
+	// (Docker Compose already loads it via env_file directive)
 	err := godotenv.Load("../.env")
 	if err != nil {
-		log.Fatal("Cannot load .env variables into the OS")
+		log.Println("Warning: .env file not found, using environment variables from Docker Compose")
 	}
 }
 
