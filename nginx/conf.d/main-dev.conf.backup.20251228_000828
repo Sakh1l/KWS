@@ -1,7 +1,7 @@
 # Development HTTP Server Block (no SSL)
 server {
     listen 80;
-    server_name localhost 127.0.0.1 192.168.1.90 *.kwscloud.in kwscloud.in;
+    server_name localhost 127.0.0.1 *.kwscloud.in kwscloud.in;
 
     location / {
         proxy_pass http://127.0.0.1:8080;

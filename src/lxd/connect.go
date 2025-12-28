@@ -7,7 +7,7 @@ import (
 )
 
 func ConnectToLXD() (*lxd.InstanceServer, error) {
-	client, err := lxd.ConnectLXDUnix("/var/snap/lxd/common/lxd/unix.socket", nil)
+	client, err := lxd.ConnectLXDUnix("/var/lib/lxd/unix.socket", nil)
 	if err != nil {
 		log.Println("Cannot connect to LXD runtime")
 		return nil, err
